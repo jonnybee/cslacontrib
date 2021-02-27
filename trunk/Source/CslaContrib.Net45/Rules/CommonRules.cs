@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Csla.Core;
-using Csla.Properties;
 using Csla.Rules;
 using Csla.Rules.CommonRules;
 
@@ -269,7 +268,7 @@ namespace CslaContrib.Rules.CommonRules
     public string Format { get; set; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Range"/> class. 
+    /// Initializes a new instance of the <see cref="Range"/> class.
     /// Creates an instance of the rule.
     /// </summary>
     /// <param name="primaryProperty">
@@ -292,7 +291,7 @@ namespace CslaContrib.Rules.CommonRules
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Range"/> class. 
+    /// Initializes a new instance of the <see cref="Range"/> class.
     /// Creates an instance of the rule.
     /// </summary>
     /// <param name="primaryProperty">
@@ -346,144 +345,6 @@ namespace CslaContrib.Rules.CommonRules
         var message = string.Format(GetMessage(), PrimaryProperty.FriendlyName, minOutValue, maxOutValue);
         context.Results.Add(new RuleResult(RuleName, PrimaryProperty, message) { Severity = Severity });
       }
-    }
-  }
-
-  #endregion
-
-  #region Flow Control Rules
-
-  /// <summary>
-  /// ShortCircuit rule processing if user is not allowed to edit field.
-  /// </summary>
-  public class StopIfNotCanWrite : BusinessRule
-  {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="StopIfNotCanWrite"/> class.
-    /// </summary>
-    /// <param name="property">The property to check.</param>
-    public StopIfNotCanWrite(IPropertyInfo property)
-      : base(property)
-    {
-    }
-
-    /// <summary>
-    /// Rule indicating whether the user is authorized
-    /// to change the property value.
-    /// Will always be silent and never set rule to broken.
-    /// </summary>
-    /// <param name="context">Rule context object.</param>
-    /// <remarks>
-    /// Combine this Rule with short-circuiting to
-    /// prevent evaluation of other rules in the case
-    /// that the user isn't allowed to change the value.
-    /// </remarks>
-    protected override void Execute(RuleContext context)
-    {
-      var business = context.Target as BusinessBase;
-      if (business == null) return;
-
-      if (!business.CanWriteProperty(context.Rule.PrimaryProperty))
-      {
-        // shortcurcuit as success
-        context.AddSuccessResult(true);
-      }
-    }
-  }
-
-  /// <summary>
-  /// ShortCircuit rule processing if target is not a new object
-  /// </summary>
-  public class StopIfNotIsNew : BusinessRule
-  {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="StopIfNotIsNew"/> class.
-    /// </summary>
-    /// <param name="property">The property.</param>
-    public StopIfNotIsNew(IPropertyInfo property) : base(property) { }
-
-    /// <summary>
-    /// Executes the rule in specified context.
-    /// </summary>
-    /// <param name="context">The context.</param>
-    protected override void Execute(RuleContext context)
-    {
-      var target = (ITrackStatus)context.Target;
-      if (!target.IsNew)
-      {
-        context.AddSuccessResult(true);
-      }
-    }
-  }
-
-  /// <summary>
-  /// ShortCircuit rule processing if target is not an existing object.
-  /// </summary>
-  public class StopIfNotIsExisting : BusinessRule
-  {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="StopIfNotIsExisting"/> class.
-    /// </summary>
-    /// <param name="property">The property.</param>
-    public StopIfNotIsExisting(IPropertyInfo property) : base(property) { }
-
-    /// <summary>
-    /// Executes the rule in specified context.
-    /// </summary>
-    /// <param name="context">The context.</param>
-    protected override void Execute(RuleContext context)
-    {
-      var target = (ITrackStatus)context.Target;
-      if (target.IsNew)
-      {
-        context.AddSuccessResult(true);
-      }
-    }
-  }
-
-  /// <summary>
-  /// If any of the additional properties has a value stop rule processing 
-  /// for this field and make field valid. 
-  /// </summary>
-  public class StopIfAnyAdditionalHasValue : BusinessRule
-  {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="StopIfAnyAdditionalHasValue"/> class.
-    /// </summary>
-    /// <param name="primaryProperty">The primary property.</param>
-    /// <param name="additionalProperties">The additional properties.</param>
-    public StopIfAnyAdditionalHasValue(IPropertyInfo primaryProperty, params IPropertyInfo[] additionalProperties)
-      : base(primaryProperty)
-    {
-      if (InputProperties == null) InputProperties = new List<IPropertyInfo> { primaryProperty };
-      InputProperties.AddRange(additionalProperties);
-    }
-
-    /// <summary>
-    /// Executes the rule in specified context.
-    /// </summary>
-    /// <param name="context">The context.</param>
-    protected override void Execute(RuleContext context)
-    {
-      var hasValue = false;
-      // excludes primary property 
-      foreach (var field in context.InputPropertyValues.Where(p => p.Key != PrimaryProperty))
-      {
-        // smartfields have their own implementation of IsEmpty
-        var smartField = field.Value as ISmartField;
-
-        if (smartField != null)
-        {
-          hasValue = !smartField.IsEmpty;
-        }
-        else if (field.Value != null && !field.Value.Equals(field.Key.DefaultValue))
-        {
-          hasValue = true;
-        }
-      }
-
-      // if hasValue then shortcut rule processing      
-      if (hasValue) context.AddSuccessResult(true);
     }
   }
 
@@ -717,12 +578,11 @@ namespace CslaContrib.Rules.CommonRules
 
   #region List rules
 
-
   /// <summary>
   /// Validation rule for checking a property is unique at the collection level.
   /// </summary>
   public class NoDuplicates<T, C> : CommonBusinessRule
-    where T : Csla.BusinessListBase<T, C>
+    where T : System.Collections.ObjectModel.Collection<C>
     where C : Csla.BusinessBase<C>
   {
     /// <summary>
@@ -767,12 +627,11 @@ namespace CslaContrib.Rules.CommonRules
 
       var value = Convert.ToString(o);
 
-
       var target = (C)context.Target;
       var parent = (T)target.Parent;
       if (parent != null)
       {
-        if (parent.Any(item => value.Equals(Convert.ToString(ReadProperty(item, PrimaryProperty)), StringComparison.InvariantCultureIgnoreCase) 
+        if (parent.Any(item => value.Equals(Convert.ToString(ReadProperty(item, PrimaryProperty)), StringComparison.InvariantCultureIgnoreCase)
                                && !(ReferenceEquals(item, target))))
         {
           var message = string.Format(GetMessage(), InputProperties[0].FriendlyName);
@@ -781,5 +640,6 @@ namespace CslaContrib.Rules.CommonRules
       }
     }
   }
+
   #endregion
 }
